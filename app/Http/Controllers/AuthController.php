@@ -139,7 +139,6 @@ class AuthController extends Controller
         ]);
     }
 
-
     /**
      * Get a JWT via given credentials.
      *
@@ -147,13 +146,28 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
-        $credentials = request(['email', 'password']);
+        $request->validate([
+            "email" => "required|email",
+            "password" => "required|min:6"
+        ],[
+            'email.required' => 'Email field is required',
+            'email.email' => 'The email should be a valid email',
+            'password.required' => 'Password field is required',
+            'password.min' => 'Password should be 6 character or above'
+        ]);
 
+        $credentials = request(['email', 'password']);
         if (!$token = auth()->attempt($credentials)) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+            return response()->json(['error' => 'Invalid credentials'], 401);
         }
 
-        return $this->respondWithToken($token);
+        
+        return response()->json([
+            'user' => new UserResource(auth()->user()),
+            'credentials' => $this->respondWithToken($token),
+        ]);
+
+        // return $this->respondWithToken($token);
     }
 
     /**
@@ -174,8 +188,13 @@ class AuthController extends Controller
     public function logout()
     {
         auth()->logout();
-
-        return response()->json(['message' => 'Successfully logged out']);
+        return response()->json([
+            'meta' => [
+                "code" => 200,
+                "status" => true,
+                "message" => "You are logout!"
+            ]
+        ]);
     }
 
     /**
